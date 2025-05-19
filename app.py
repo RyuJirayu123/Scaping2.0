@@ -6,8 +6,8 @@ from io import BytesIO
 
 # โหลด config จาก toml
 
-GOOGLE_API_KEY = st.secrets["google_api_key"]
-GOOGLE_CSE_ID = st.secrets["google_cse_id"]
+GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+GOOGLE_CSE_ID = st.secrets["GOOGLE_CSE_ID"]
 
 # ---------------------------
 # Sidebar: Input

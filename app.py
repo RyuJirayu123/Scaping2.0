@@ -3,12 +3,11 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 from io import BytesIO
-import toml
 
 # โหลด config จาก toml
-config = toml.load("config.toml")
-GOOGLE_API_KEY = config["google"]["api_key"]
-GOOGLE_CSE_ID = config["google"]["cse_id"]
+
+GOOGLE_API_KEY = st.secrets["google_api_key"]
+GOOGLE_CSE_ID = st.secrets["google_cse_id"]
 
 # ---------------------------
 # Sidebar: Input

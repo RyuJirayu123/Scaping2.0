@@ -3,14 +3,12 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 from io import BytesIO
-import os
-from dotenv import load_dotenv
-load_dotenv()
-# ---------------------------
-# Google Custom Search API Key และ Search Engine ID
-# ---------------------------
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-GOOGLE_CSE_ID = os.getenv("GOOGLE_CSE_ID")
+import toml
+
+# โหลด config จาก toml
+config = toml.load("config.toml")
+GOOGLE_API_KEY = config["google"]["api_key"]
+GOOGLE_CSE_ID = config["google"]["cse_id"]
 
 # ---------------------------
 # Sidebar: Input

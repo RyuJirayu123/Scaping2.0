@@ -1,0 +1,6 @@
+streamlit
+googlesearch-python
+requests
+beautifulsoup4
+pandas
+xlsxwriter

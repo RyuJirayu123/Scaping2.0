@@ -51,7 +51,7 @@ if input_line and (not st.session_state.results or st.session_state.get("last_qu
                 "key": GOOGLE_API_KEY,
                 "cx": GOOGLE_CSE_ID,
                 "q": query,
-                "num": 20,
+                "num": 10,
                 "hl": "th"
             }
             resp = requests.get("https://www.googleapis.com/customsearch/v1", params=params)

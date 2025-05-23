@@ -42,7 +42,10 @@ st.markdown("""
 if "results" not in st.session_state:
     st.session_state.results = []
 
-if input_line and (not st.session_state.results or st.session_state.get("last_query", "") != input_line + site_option + str(max_results)):
+if input_line and (
+    not st.session_state.results or
+    st.session_state.get("last_query", "") != input_line + site_option + str(max_results)
+):
     keywords = [k.strip() for k in input_line.split(",") if k.strip()]
     query = f"{site_prefix} {' '.join(keywords)}".strip()
 
@@ -51,6 +54,7 @@ if input_line and (not st.session_state.results or st.session_state.get("last_qu
     results_per_page = 10
     total_pages = max_results // results_per_page
     urls = []
+    total_found = 0
 
     try:
         with st.spinner("🔄 Searching Google via Custom Search API..."):
@@ -66,6 +70,10 @@ if input_line and (not st.session_state.results or st.session_state.get("last_qu
                 }
                 resp = requests.get("https://www.googleapis.com/customsearch/v1", params=params)
                 data = resp.json()
+
+                if page == 0:
+                    total_found = int(data.get("searchInformation", {}).get("totalResults", "0"))
+
                 items = data.get("items", [])
                 urls.extend([item["link"] for item in items])
                 if len(items) < results_per_page:
@@ -73,6 +81,9 @@ if input_line and (not st.session_state.results or st.session_state.get("last_qu
     except Exception as e:
         st.error(f"❌ Error during search: {e}")
         urls = []
+
+    if total_found:
+        st.success(f"🔢 พบผลลัพธ์ทั้งหมดประมาณ {total_found:,} รายการ")
 
     results = []
     for i, url in enumerate(urls, start=1):

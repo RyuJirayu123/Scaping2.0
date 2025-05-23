@@ -37,12 +37,15 @@ st.markdown("""
 ค้นหาข้อมูลบน Google ผ่าน Google Custom Search API แบบเฉพาะเจาะจง เช่น Facebook หรือ Instagram  
 ใส่คำค้นหลายคำ โดยใช้เครื่องหมายคอมม่า (`,`) คั่นระหว่างคำ  
 """)
-
+# ...
 # Initialize session state
 if "results" not in st.session_state:
     st.session_state.results = []
 
-if input_line and (not st.session_state.results or st.session_state.get("last_query", "") != input_line + site_option + str(max_results)):
+# ✅ เคลียร์ผลลัพธ์เก่าเมื่อเริ่มการค้นหาใหม่
+if input_line and (st.session_state.get("last_query", "") != input_line + site_option + str(max_results)):
+    st.session_state.results = []  # <<-- เพิ่มบรรทัดนี้
+
     keywords = [k.strip() for k in input_line.split(",") if k.strip()]
     query = f"{site_prefix} {' '.join(keywords)}".strip()
 

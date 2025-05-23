@@ -37,89 +37,93 @@ st.markdown("""
 ค้นหาข้อมูลบน Google ผ่าน Google Custom Search API แบบเฉพาะเจาะจง เช่น Facebook หรือ Instagram  
 ใส่คำค้นหลายคำ โดยใช้เครื่องหมายคอมม่า (`,`) คั่นระหว่างคำ  
 """)
-# ...
-# Initialize session state
+
+# ---------------------------
+# Main search logic
+# ---------------------------
 if input_line:
-    # เคลียร์ผลลัพธ์เก่า ทุกครั้งที่เริ่มค้นหาใหม่ (ไม่เช็ค last_query)
-    st.session_state.results = []
+    current_query = input_line + site_option + str(max_results)
 
-    keywords = [k.strip() for k in input_line.split(",") if k.strip()]
-    query = f"{site_prefix} {' '.join(keywords)}".strip()
+    # เคลียร์ผลลัพธ์เก่าเฉพาะเมื่อ query เปลี่ยนเท่านั้น
+    if st.session_state.get("last_query", "") != current_query:
+        st.session_state.results = []
 
-    st.markdown(f"### 🔎 Results for query: `{query}`")
+        keywords = [k.strip() for k in input_line.split(",") if k.strip()]
+        query = f"{site_prefix} {' '.join(keywords)}".strip()
 
-    results_per_page = 10
-    total_pages = max_results // results_per_page
-    urls = []
-    total_results_reported = None
+        st.markdown(f"### 🔎 Results for query: `{query}`")
 
-    try:
-        with st.spinner("🔄 Searching Google via Custom Search API..."):
-            for page in range(total_pages):
-                start_index = page * results_per_page + 1
-                params = {
-                    "key": GOOGLE_API_KEY,
-                    "cx": GOOGLE_CSE_ID,
-                    "q": query,
-                    "num": results_per_page,
-                    "start": start_index,
-                    "hl": "th"
-                }
-                resp = requests.get("https://www.googleapis.com/customsearch/v1", params=params)
-                data = resp.json()
-
-                if total_results_reported is None:
-                    total_results_reported = data.get("searchInformation", {}).get("totalResults", "0")
-
-                items = data.get("items", [])
-                urls.extend([item["link"] for item in items])
-                if len(items) < results_per_page:
-                    break
-    except Exception as e:
-        st.error(f"❌ Error during search: {e}")
+        results_per_page = 10
+        total_pages = max_results // results_per_page
         urls = []
+        total_results_reported = None
 
-    results = []
-    for i, url in enumerate(urls, start=1):
         try:
-            response = requests.get(url, timeout=5, headers={"User-Agent": "Mozilla/5.0"})
-            soup = BeautifulSoup(response.text, 'html.parser')
+            with st.spinner("🔄 Searching Google via Custom Search API..."):
+                for page in range(total_pages):
+                    start_index = page * results_per_page + 1
+                    params = {
+                        "key": GOOGLE_API_KEY,
+                        "cx": GOOGLE_CSE_ID,
+                        "q": query,
+                        "num": results_per_page,
+                        "start": start_index,
+                        "hl": "th"
+                    }
+                    resp = requests.get("https://www.googleapis.com/customsearch/v1", params=params)
+                    data = resp.json()
 
-            title = soup.title.string.strip() if soup.title else "No title found"
+                    if total_results_reported is None:
+                        total_results_reported = data.get("searchInformation", {}).get("totalResults", "0")
 
-            meta_desc = soup.find("meta", attrs={"name": "description"}) or \
-                        soup.find("meta", attrs={"property": "og:description"})
-            if meta_desc and meta_desc.get("content"):
-                description = meta_desc["content"].strip()
-            else:
-                first_p = soup.find("p")
-                description = first_p.text.strip()[:300] if first_p else "No content found"
-
+                    items = data.get("items", [])
+                    urls.extend([item["link"] for item in items])
+                    if len(items) < results_per_page:
+                        break
         except Exception as e:
-            title = f"Error fetching title: {e}"
-            description = f"Error fetching content: {e}"
+            st.error(f"❌ Error during search: {e}")
+            urls = []
 
-        with st.expander(f"{i}. {title}"):
-            st.write(f"🔗 {url}")
-            st.write(f"✏️ {description}")
+        results = []
+        for i, url in enumerate(urls, start=1):
+            try:
+                response = requests.get(url, timeout=5, headers={"User-Agent": "Mozilla/5.0"})
+                soup = BeautifulSoup(response.text, 'html.parser')
 
-        results.append({
-            "No.": i,
-            "Title": title,
-            "URL": url,
-            "Content": description
-        })
+                title = soup.title.string.strip() if soup.title else "No title found"
 
-    st.info(f"📊 พบทั้งหมด {len(results)} รายการ (จาก Google รายงานว่าเจอทั้งหมด {total_results_reported} รายการ)")
+                meta_desc = soup.find("meta", attrs={"name": "description"}) or \
+                            soup.find("meta", attrs={"property": "og:description"})
+                if meta_desc and meta_desc.get("content"):
+                    description = meta_desc["content"].strip()
+                else:
+                    first_p = soup.find("p")
+                    description = first_p.text.strip()[:300] if first_p else "No content found"
 
-    st.session_state.results = results
-    st.session_state.last_query = input_line + site_option + str(max_results)
+            except Exception as e:
+                title = f"Error fetching title: {e}"
+                description = f"Error fetching content: {e}"
 
+            with st.expander(f"{i}. {title}"):
+                st.write(f"🔗 {url}")
+                st.write(f"✏️ {description}")
+
+            results.append({
+                "No.": i,
+                "Title": title,
+                "URL": url,
+                "Content": description
+            })
+
+        st.info(f"📊 พบทั้งหมด {len(results)} รายการ (จาก Google รายงานว่าเจอทั้งหมด {total_results_reported} รายการ)")
+
+        st.session_state.results = results
+        st.session_state.last_query = current_query
 
 # ---------------------------
 # Display & Export
 # ---------------------------
-if st.session_state.results:
+if "results" in st.session_state and st.session_state.results:
     for r in st.session_state.results:
         with st.expander(f"{r['No.']}. {r['Title']}"):
             st.write(f"🔗 [Visit Site]({r['URL']})")

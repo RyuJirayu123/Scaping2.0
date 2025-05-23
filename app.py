@@ -5,9 +5,9 @@ import pandas as pd
 from io import BytesIO
 
 # โหลด config จาก toml
-
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 GOOGLE_CSE_ID = st.secrets["GOOGLE_CSE_ID"]
+
 # ---------------------------
 # Sidebar: Input
 # ---------------------------
@@ -21,6 +21,10 @@ input_line = st.sidebar.text_input(
 site_option = st.sidebar.selectbox(
     "🌐 Restrict search to specific site:",
     ["All sites", "facebook.com", "instagram.com", "x.com"]
+)
+
+max_results = st.sidebar.slider(
+    "🔢 Number of results", min_value=10, max_value=100, step=10, value=30
 )
 
 site_prefix = ""
@@ -38,25 +42,34 @@ st.markdown("""
 if "results" not in st.session_state:
     st.session_state.results = []
 
-if input_line and (not st.session_state.results or st.session_state.get("last_query", "") != input_line + site_option):
+if input_line and (not st.session_state.results or st.session_state.get("last_query", "") != input_line + site_option + str(max_results)):
     keywords = [k.strip() for k in input_line.split(",") if k.strip()]
     query = f"{site_prefix} {' '.join(keywords)}".strip()
 
     st.markdown(f"### 🔎 Results for query: `{query}`")
 
-    # Call Google Custom Search API
+    results_per_page = 10
+    total_pages = max_results // results_per_page
+    urls = []
+
     try:
         with st.spinner("🔄 Searching Google via Custom Search API..."):
-            params = {
-                "key": GOOGLE_API_KEY,
-                "cx": GOOGLE_CSE_ID,
-                "q": query,
-                "num": 10,
-                "hl": "th"
-            }
-            resp = requests.get("https://www.googleapis.com/customsearch/v1", params=params)
-            data = resp.json()
-            urls = [item["link"] for item in data.get("items", [])]
+            for page in range(total_pages):
+                start_index = page * results_per_page + 1
+                params = {
+                    "key": GOOGLE_API_KEY,
+                    "cx": GOOGLE_CSE_ID,
+                    "q": query,
+                    "num": results_per_page,
+                    "start": start_index,
+                    "hl": "th"
+                }
+                resp = requests.get("https://www.googleapis.com/customsearch/v1", params=params)
+                data = resp.json()
+                items = data.get("items", [])
+                urls.extend([item["link"] for item in items])
+                if len(items) < results_per_page:
+                    break
     except Exception as e:
         st.error(f"❌ Error during search: {e}")
         urls = []
@@ -93,7 +106,7 @@ if input_line and (not st.session_state.results or st.session_state.get("last_qu
         })
 
     st.session_state.results = results
-    st.session_state.last_query = input_line + site_option
+    st.session_state.last_query = input_line + site_option + str(max_results)
 
 # ---------------------------
 # Display & Export
